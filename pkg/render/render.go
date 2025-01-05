@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"github.com/justinas/nosurf"
 	"github.com/yikikdevops/bookings/pkg/config"
 	"github.com/yikikdevops/bookings/pkg/models"
 	"html/template"
@@ -19,12 +20,13 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 }
 
-func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
+	td.CSRFToken = nosurf.Token(r)
 	return td
 }
 
 // RenderTemplate renders templates using html/template
-func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData) {
+func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, td *models.TemplateData) {
 	var tc map[string]*template.Template
 	if app.UseCache {
 		// get the template cache from the app config
@@ -40,7 +42,7 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData)
 	}
 	buf := new(bytes.Buffer)
 
-	td = AddDefaultData(td)
+	td = AddDefaultData(td, r)
 
 	_ = t.Execute(buf, td)
 
@@ -82,47 +84,3 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 	}
 	return myCache, nil
 }
-
-//var tc = make(map[string]*template.Template)
-//
-//func RenderTemplate(w http.ResponseWriter, t string) {
-//	var tmpl *template.Template
-//
-//	var err error
-//
-//	// check to see if we already have the template in our cache
-//	_, inMap := tc[t]
-//	if !inMap {
-//		log.Println("creating template and adding to cache")
-//		err = createTemplateCache(t)
-//		if err != nil {
-//			log.Println(err)
-//		}
-//	} else {
-//		// we have the template in the cache
-//		log.Println("using template from cache")
-//	}
-//
-//	tmpl = tc[t]
-//	err = tmpl.Execute(w, nil)
-//	if err != nil {
-//		fmt.Println("error parsing template: ", err)
-//		return
-//	}
-//
-//}
-//
-//func createTemplateCache(t string) error {
-//	templates := []string{
-//		fmt.Sprintf("./templates/%s", t),
-//		"./templates/base.layout.tmpl",
-//	}
-//	// parse the template files...
-//	tmpl, err := template.ParseFiles(templates...)
-//	if err != nil {
-//		return err
-//	}
-//	// add the template to the cache (map)
-//	tc[t] = tmpl
-//	return nil
-//}
